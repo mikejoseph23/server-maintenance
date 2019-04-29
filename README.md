@@ -2,6 +2,8 @@
 
 This repo stores an application that is used to perform some system maintenance on servers I maintain.
 
+Built using the .NET Framework 4.7.
+
 Currenly all it does is backup up SQL Server databases to a folder and sends an email message. It was built because I have SQL Express running on a server and need to perform incremental backups so that they can be stored off-site. 
 
 Unfortunately, SQL Express does not have the built in mainenance plan stuff that regular SQL Server has. So as a concequence, I had to figure out how to automatically run a backup programmatically. This repo is the result.
