@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Configuration;
 using System.Net.Mail;
+using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using ServerMaintenance.Helpers;
@@ -48,7 +49,7 @@ namespace ServerMaintenance
             finally
             {
                 // TODO: Email a confirmation that this task was performed.
-                var msg = new System.Net.Mail.MailMessage();
+                var msg = new MailMessage();
                 msg.To.Add(new MailAddress(ConfigurationManager.AppSettings["NotificationRecipient"]));
                 msg.From = new MailAddress(ConfigurationManager.AppSettings["NotificationFromAddress"]);
                 msg.Subject = ConfigurationManager.AppSettings["NotificationSubject"];
@@ -59,12 +60,25 @@ namespace ServerMaintenance
                     msg.Priority = MailPriority.High;
                 }
 
-                msg.Body = "Activity Log: \n\n";
-                msg.Body += JsonConvert.SerializeObject(_log, Formatting.Indented, jsonSettings);
+                msg.Body = GetEmailBody();
                 msg.IsBodyHtml = false;
                 var client = new SmtpClient();
                 client.Send(msg);
             }
+        }
+
+        private string GetEmailBody()
+        {
+            var sb = new StringBuilder();
+
+            foreach (var log in _log.LogEntries)
+            {
+                var code = log.Error ? "ERROR" : "FYI";
+                var line = $"{log.TheDate.ToShortDateString()} {log.TheDate.ToShortTimeString()} - {code} - {log.Description}";
+                sb.AppendLine(line);
+            }
+
+            return sb.ToString();
         }
     }
 }
