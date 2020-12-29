@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Configuration;
-using System.Data.SqlClient;
 using System.IO;
 using Microsoft.SqlServer.Management.Common;
 using Microsoft.SqlServer.Management.Smo;
@@ -10,7 +9,7 @@ namespace ServerMaintenance.Helpers
     public class SqlScriptRunner
     {
         private readonly string _path;
-        private readonly string _connectionString = ConfigurationManager.AppSettings["ConnectionString"];
+        private readonly string _dbServerName = ConfigurationManager.AppSettings["DbServerName"];
 
         public SqlScriptRunner(string path)
         {
@@ -24,9 +23,8 @@ namespace ServerMaintenance.Helpers
 
             // FUTURE: Make this more configurable:
             sqlText = sqlText.Replace("[BACKUP_PATH]", ConfigurationManager.AppSettings["SqlBackupPath"]);
-
-            var conn = new SqlConnection(_connectionString);
-            var server = new Server(new ServerConnection(conn));
+            var serverConnection = new ServerConnection(_dbServerName);
+            var server = new Server(serverConnection);
             server.ConnectionContext.ExecuteNonQuery(sqlText);
         }
     }
