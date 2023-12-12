@@ -48,9 +48,15 @@ namespace ServerMaintenance
             }
             finally
             {
-                // TODO: Email a confirmation that this task was performed.
+                // Email a confirmation that this task was performed.
                 var msg = new MailMessage();
-                msg.To.Add(new MailAddress(ConfigurationManager.AppSettings["NotificationRecipient"]));
+                var recipients = ConfigurationManager.AppSettings["NotificationRecipient"].Replace(";", ",").Split(',');
+
+                foreach (var recipient in recipients)
+                {
+                    msg.To.Add(new MailAddress(recipient.Trim()));
+                }
+
                 msg.From = new MailAddress(ConfigurationManager.AppSettings["NotificationFromAddress"]);
                 msg.Subject = ConfigurationManager.AppSettings["NotificationSubject"];
 
