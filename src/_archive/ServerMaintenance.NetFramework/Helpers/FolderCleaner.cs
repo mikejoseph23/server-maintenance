@@ -1,30 +1,27 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.IO;
-using Microsoft.Extensions.Configuration;
 
 namespace ServerMaintenance.Helpers
 {
     internal class FolderCleaner
     {
         private readonly string _folderPath;
-        private readonly IConfiguration _configuration;
 
         public List<DeletedFile> DeletedFiles { get; set; }
 
-        public FolderCleaner(string folderPath, IConfiguration configuration)
+        public FolderCleaner(string folderPath)
         {
             DeletedFiles = new List<DeletedFile>();
             if (!Directory.Exists(folderPath)) throw new Exception("The folder '" + folderPath + "' does not exist.");
             _folderPath = folderPath;
-            _configuration = configuration;
         }
 
         public void Run(bool recursive = false)
         {
             var di = new DirectoryInfo(_folderPath);
-            var maxAge = int.Parse(_configuration["MaxAgeOfBackupsInDays"]);
-            var expirationDate = DateTime.Now.AddDays(-maxAge);
+            var expirationDate = DateTime.Now.AddDays(-(int.Parse(ConfigurationManager.AppSettings["MaxAgeOfBackupsInDays"])));
 
             foreach (var fi in di.GetFiles())
             {

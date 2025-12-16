@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C /Users/michaeljosephwork/git/server-maintenance log --oneline -10)",
+      "Bash(git -C /Users/michaeljosephwork/git/server-maintenance remote:*)",
+      "Bash(git checkout:*)",
+      "Bash(dotnet build:*)",
+      "Bash(dotnet publish:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}

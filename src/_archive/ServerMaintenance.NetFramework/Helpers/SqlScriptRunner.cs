@@ -1,6 +1,6 @@
-using System;
+﻿using System;
+using System.Configuration;
 using System.IO;
-using Microsoft.Extensions.Configuration;
 using Microsoft.SqlServer.Management.Common;
 using Microsoft.SqlServer.Management.Smo;
 
@@ -9,21 +9,21 @@ namespace ServerMaintenance.Helpers
     public class SqlScriptRunner
     {
         private readonly string _path;
-        private readonly IConfiguration _configuration;
+        private readonly string _dbServerName = ConfigurationManager.AppSettings["DbServerName"];
 
-        public SqlScriptRunner(string path, IConfiguration configuration)
+        public SqlScriptRunner(string path)
         {
             if (!File.Exists(path)) throw new Exception("The file '" + path + "' does not exist.");
             _path = path;
-            _configuration = configuration;
         }
 
         public void Run()
         {
             var sqlText = File.ReadAllText(_path);
 
-            sqlText = sqlText.Replace("[BACKUP_PATH]", _configuration["SqlBackupPath"]);
-            var serverConnection = new ServerConnection(_configuration["DbServerName"]);
+            // FUTURE: Make this more configurable:
+            sqlText = sqlText.Replace("[BACKUP_PATH]", ConfigurationManager.AppSettings["SqlBackupPath"]);
+            var serverConnection = new ServerConnection(_dbServerName);
             var server = new Server(serverConnection);
             server.ConnectionContext.ExecuteNonQuery(sqlText);
         }
