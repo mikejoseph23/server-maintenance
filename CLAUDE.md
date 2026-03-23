@@ -39,3 +39,7 @@ Program.Main() → MaintenanceMan.RunAll()
 ## Deployment
 
 Runs as a Windows Scheduled Task under a service account with SQL Server access and file system write permissions to the backup folder.
+
+## Conventions
+
+- ZOMBIE-prefixed commented code blocks are intentional. Don't delete them — they may be re-implemented later.
