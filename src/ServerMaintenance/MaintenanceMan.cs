@@ -116,10 +116,21 @@ namespace ServerMaintenance
             }
         }
 
+        /// <summary>
+        /// Records a failed step. Must never throw - it is the last thing standing
+        /// between a bad night and a silent one.
+        /// </summary>
+        /// <remarks>
+        /// This used to serialize the exception with System.Text.Json, which refuses
+        /// to write Exception.TargetSite (a MethodBase) and threw NotSupportedException
+        /// from inside the catch block - taking down the run it was supposed to report.
+        /// ToString() gives the message, the inner exceptions and the stack trace,
+        /// which is everything the email needs anyway.
+        /// </remarks>
         private void LogError(string description, Exception ex)
         {
             _log.LogEntries.Add(new ActivityLog.LogEntry(DateTime.Now, description, true));
-            _log.LogEntries.Add(new ActivityLog.LogEntry(DateTime.Now, JsonSerializer.Serialize(ex, JsonOptions), true));
+            _log.LogEntries.Add(new ActivityLog.LogEntry(DateTime.Now, ex.ToString(), true));
         }
 
         private SmtpClient CreateSmtpClient()
