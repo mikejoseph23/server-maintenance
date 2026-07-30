@@ -24,17 +24,46 @@ namespace ServerMaintenance
             _configuration = configuration;
         }
 
-        public void RunAll()
+        /// <summary>
+        /// Runs every maintenance step and reports the outcome. Returns false if any
+        /// step failed.
+        /// </summary>
+        /// <remarks>
+        /// The steps are deliberately independent. They used to share one try block,
+        /// and the catch rethrew, so a failed backup killed the process before cleanup
+        /// ever ran - old .BAK files then piled up untouched for months while the
+        /// retention setting looked like it was being honoured. A step that fails now
+        /// gets logged and the next one still runs.
+        /// </remarks>
+        public bool RunAll()
+        {
+            RunBackups();
+            RunCleanup();
+            SendNotification();
+
+            return !_log.HasErrors;
+        }
+
+        private void RunBackups()
         {
             try
             {
-                // Backup SQL Server files.
                 var backupScriptPath = _configuration["SqlScriptPath"];
                 _log.LogEntries.Add(new ActivityLog.LogEntry(DateTime.Now, "Backing up SQL Server files to " + backupScriptPath));
                 var scriptRunner = new SqlScriptRunner(backupScriptPath, _configuration);
                 scriptRunner.Run();
                 _log.LogEntries.Add(new ActivityLog.LogEntry(DateTime.Now, "Done Backing up SQL Server files."));
+            }
+            catch (Exception ex)
+            {
+                LogError("Error Occurred backing up SQL Server files.", ex);
+            }
+        }
 
+        private void RunCleanup()
+        {
+            try
+            {
                 // Delete backups over x days old.
                 _log.LogEntries.Add(new ActivityLog.LogEntry(DateTime.Now, "Cleaning up files older than " + _configuration["MaxAgeOfBackupsInDays"] + " days."));
                 var cleaner = new FolderCleaner(_configuration["SqlBackupPath"], _configuration);
@@ -44,13 +73,17 @@ namespace ServerMaintenance
             }
             catch (Exception ex)
             {
-                _log.LogEntries.Add(new ActivityLog.LogEntry(DateTime.Now, "Error Occurred", true));
-                _log.LogEntries.Add(new ActivityLog.LogEntry(DateTime.Now, JsonSerializer.Serialize(ex, JsonOptions), true));
-                throw;
+                LogError("Error Occurred cleaning up old backups.", ex);
             }
-            finally
+        }
+
+        /// <summary>
+        /// Email a confirmation that this task was performed.
+        /// </summary>
+        private void SendNotification()
+        {
+            try
             {
-                // Email a confirmation that this task was performed.
                 var msg = new MailMessage();
                 var recipients = _configuration["Notification:Recipients"].Replace(";", ",").Split(',');
 
@@ -74,6 +107,19 @@ namespace ServerMaintenance
                 using var client = CreateSmtpClient();
                 client.Send(msg);
             }
+            catch (Exception ex)
+            {
+                // Losing the report is itself a failure worth a non-zero exit code -
+                // it is the only thing that makes a bad night visible.
+                LogError("Error Occurred sending the notification email.", ex);
+                Console.Error.WriteLine("Failed to send notification email: " + ex.Message);
+            }
+        }
+
+        private void LogError(string description, Exception ex)
+        {
+            _log.LogEntries.Add(new ActivityLog.LogEntry(DateTime.Now, description, true));
+            _log.LogEntries.Add(new ActivityLog.LogEntry(DateTime.Now, JsonSerializer.Serialize(ex, JsonOptions), true));
         }
 
         private SmtpClient CreateSmtpClient()
